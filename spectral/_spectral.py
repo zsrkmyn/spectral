@@ -19,7 +19,7 @@ left, this version is relicensed to GPL.
 
 """
 
-from __future__ import division
+
 from inspect import getargspec
 
 import numpy as np
@@ -105,20 +105,14 @@ class Spectral(object):
         self.noise_fr = noise_fr
 
         if not nfilt > 0:
-            raise(ValueError,
-                  'Number of filters must be positive, not {0:%d}'
-                  .format(nfilt))
+            raise ValueError
         self.nfilt = nfilt
 
         self.taper_filt = taper_filt
         if upperf > fs // 2:
-            raise(ValueError,
-                  'Upper frequency {0:.3f} cannot exceed Nyquist {1:.3f}'
-                  .format(upperf, float(fs // 2)))
+            raise ValueError
         if lowerf >= upperf:
-            raise(ValueError,
-                  'Lower frequency {0:.3f} cannot exceed upper frequency {1:.3f}'
-                  .format(lowerf, upperf))
+            raise ValueError
         self.lowerf = lowerf
         self.upperf = upperf
 
@@ -139,9 +133,7 @@ class Spectral(object):
 
         compression_types = ['log', 'cubicroot', 'none']
         if not compression in compression_types:
-            raise(ValueError,
-                  'compression must be one of [{0:s}], not {1}'
-                  .format(', '.join(compression_types), compression))
+            raise ValueError
         self.compression = compression
         if self.compression == 'log':
             self.compressor = log_compression
@@ -158,7 +150,8 @@ class Spectral(object):
             self.to_hertz(np.linspace(lowerf,
                                       upperf,
                                       self.nfilt+2))/self.fs).astype(np.uint)
-        for filt in xrange(self.nfilt):
+        edges = np.int32(edges)
+        for filt in range(self.nfilt):
             left = edges[filt]
             center = edges[filt+1]
             right = edges[filt+2]
@@ -314,7 +307,7 @@ class Spectral(object):
 
     def stft(self, sig):
         s = np.pad(sig, (self.wlen//2, 0), 'constant')
-        cols = np.ceil((s.shape[0] - self.wlen) / self.fshift + 1)
+        cols = np.int32(np.ceil((s.shape[0] - self.wlen) / self.fshift + 1))
         s = np.pad(s, (0, self.wlen), 'constant')
         frames = as_strided(s, shape=(cols, self.wlen),
                             strides=(s.strides[0]*self.fshift,
@@ -322,7 +315,7 @@ class Spectral(object):
         return np.fft.rfft(frames*self.win, self.nfft)
 
     def _build_dctmtx(self):
-        cols, rows = np.meshgrid(range(self.nfilt), range(self.nceps))
+        cols, rows = np.meshgrid(list(range(self.nfilt)), list(range(self.nceps)))
         dctmtx = np.sqrt(2/self.nfilt) * \
                  np.cos(np.pi*(2*cols+1)*rows/(2*self.nfilt))
         dctmtx[0,:] /= np.sqrt(2)
